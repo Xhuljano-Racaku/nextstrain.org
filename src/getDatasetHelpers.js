@@ -46,6 +46,11 @@ const splitPrefixIntoParts = (prefix) => {
       prefixParts.shift();
       sourceName = prefixParts.shift();
       break;
+    case "fetch":
+      /* the `/fetch/ URLs are backed by the `UrlDefinedSource` as `FetchSource` was too confusing */
+      prefixParts.shift();
+      sourceName = "urlDefined";
+      break;
     default:
       sourceName = "core";
       break;
@@ -90,6 +95,9 @@ const joinPartsIntoPrefix = ({source, prefixParts, isNarrative = false}) => {
     case "staging":
       leadingParts.push(source.name);
       break;
+    case "urlDefined":
+      leadingParts.push("fetch");
+      break;
     default:
       leadingParts.push("groups", source.name);
   }
@@ -106,7 +114,7 @@ const joinPartsIntoPrefix = ({source, prefixParts, isNarrative = false}) => {
     // no default
   }
 
-  return [...leadingParts, ...prefixParts.filter((x) => x.length)].join("/");
+  return [...leadingParts, ...prefixParts].join("/");
 };
 
 /* Given the prefix (split on "/") -- is there an exact match in
@@ -166,12 +174,15 @@ const parsePrefix = (prefix, otherQueries) => {
   /* Does the URL specify two trees?
    *
    * If so, we need to extract the two tree names and massage the prefixParts
-   * to only include the first.
+   * to only include the first. Note that we do not want to interpret
+   * https:// as specifying two trees (which will appear as an element of
+   * `prefixParts` as "http:" or "https:")
    */
   let treeName, secondTreeName;
+  const treeSplitChar = /(?<!http[s]?):/;
   for (let i=0; i<prefixParts.length; i++) {
-    if (prefixParts[i].indexOf(":") !== -1) {
-      [treeName, secondTreeName] = prefixParts[i].split(":");
+    if (prefixParts[i].search(treeSplitChar) !== -1) {
+      [treeName, secondTreeName] = prefixParts[i].split(treeSplitChar);
       prefixParts[i] = treeName; // only use the first tree from now on
       break;
     }

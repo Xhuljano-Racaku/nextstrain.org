@@ -286,6 +286,62 @@ class CommunityNarrative extends Narrative {
   }
 }
 
+
+class UrlDefinedSource extends Source {
+
+  static get _name() { return "urlDefined"; }
+  get baseUrl() {
+    throw new Error("UrlDefinedSource does not use `this.baseUrl`");
+  }
+
+  dataset(pathParts) {
+    return new UrlDefinedDataset(this, pathParts);
+  }
+  narrative(pathParts) {
+    return new UrlDefinedNarrative(this, pathParts);
+  }
+
+  // what does this mean in the context of this source?
+  async availableDatasets() { return []; }
+
+  async availableNarratives() { return []; }
+
+  async getInfo() { return {}; } // todo
+
+}
+
+class UrlDefinedDataset extends Dataset {
+  get baseParts() {
+    return this.pathParts;
+  }
+  get isRequestValidWithoutDataset() {
+    return false;
+  }
+  baseNameFor(type) {
+    if (type==="main" || type==="tree" || type==="meta") {
+      return this.baseParts.join("/");
+    }
+    throw new Error(`UrlDefinedDatasets cannot (yet) handle sidecar files. Requested type: ${type}.`);
+  }
+  urlFor(type) {
+    const url = new URL(this.baseNameFor(type));
+    return url.toString();
+  }
+}
+
+class UrlDefinedNarrative extends Narrative {
+  get baseParts() {
+    return this.pathParts;
+  }
+  get baseName() {
+    return "https://" + this.baseParts.join("/");
+  }
+  url() {
+    const url = new URL(this.baseName);
+    return url.toString();
+  }
+}
+
 class S3Source extends Source {
   get bucket() {
     throw new InvalidSourceImplementation("bucket() must be implemented by subclasses");
@@ -546,6 +602,7 @@ const sources = [
   CoreSource,
   CoreStagingSource,
   CommunitySource,
+  UrlDefinedSource,
   /* Public nextstrain groups: */
   BlabSource,
   SeattleFluSource,
