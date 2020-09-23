@@ -114,7 +114,7 @@ const joinPartsIntoPrefix = ({source, prefixParts, isNarrative = false}) => {
     // no default
   }
 
-  return [...leadingParts, ...prefixParts].join("/");
+  return [...leadingParts, ...prefixParts.filter((x) => x.length)].join("/");
 };
 
 /* Given the prefix (split on "/") -- is there an exact match in
@@ -174,9 +174,7 @@ const parsePrefix = (prefix, otherQueries) => {
   /* Does the URL specify two trees?
    *
    * If so, we need to extract the two tree names and massage the prefixParts
-   * to only include the first. Note that we do not want to interpret
-   * https:// as specifying two trees (which will appear as an element of
-   * `prefixParts` as "http:" or "https:")
+   * to only include the first.
    */
   let treeName, secondTreeName;
   const treeSplitChar = /(?<!http[s]?):/;

@@ -301,13 +301,10 @@ class UrlDefinedSource extends Source {
     return new UrlDefinedNarrative(this, pathParts);
   }
 
-  // what does this mean in the context of this source?
+  // available datasets & narratives are unknown when the dataset is specified by the URL
   async availableDatasets() { return []; }
-
   async availableNarratives() { return []; }
-
-  async getInfo() { return {}; } // todo
-
+  async getInfo() { return {}; }
 }
 
 class UrlDefinedDataset extends Dataset {
@@ -318,12 +315,23 @@ class UrlDefinedDataset extends Dataset {
     return false;
   }
   baseNameFor(type) {
-    if (type==="main" || type==="tree" || type==="meta") {
-      return this.baseParts.join("/");
+    // mandate https
+    const datasetUrl = "https://" + this.baseParts.join("/");
+    if (type==="main") {
+      return datasetUrl;
     }
-    throw new Error(`UrlDefinedDatasets cannot (yet) handle sidecar files. Requested type: ${type}.`);
+    // if the request is for A.json, then return A_<type>.json.
+    if (datasetUrl.endsWith(".json")) {
+      return `${datasetUrl.replace(/\.json$/, '')}_${type}.json`;
+    }
+    // if the request if for B, where B doesn't end with `.json`, then return B_<type>
+    return `${datasetUrl}_${type}`;
   }
   urlFor(type) {
+    // when `parsePrefix()` runs (which it does for each /charon/getDataset API request), it preemtively defines
+    // a `urlFor` tree, meta and main types. For `UrlDefinedDataset`s we can only serve v2 datasets, but be aware
+    // the `urlFor` function is still called for tree + meta "types".
+    if (type==="tree" || type==="meta") return undefined;
     const url = new URL(this.baseNameFor(type));
     return url.toString();
   }
@@ -334,6 +342,7 @@ class UrlDefinedNarrative extends Narrative {
     return this.pathParts;
   }
   get baseName() {
+    // mandate https
     return "https://" + this.baseParts.join("/");
   }
   url() {
